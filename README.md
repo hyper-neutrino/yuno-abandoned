@@ -1,2 +1,2 @@
 # yuno
-Yuno, a stack-based golfing language
+yuno, a modern stack-based golfing language.
