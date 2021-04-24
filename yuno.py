@@ -39,3 +39,6 @@ interpreter.links = lines
 result = interpreter.quick_invoke(-1, *arguments[:2])
 
 interpreter.yuno_print(result)
+
+if "n" in flags:
+    print()
