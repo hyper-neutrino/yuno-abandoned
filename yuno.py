@@ -31,14 +31,12 @@ for key, val in zip("³⁴⁵⁶⁷", arguments):
 
 lines = lexer.tokenize("".join(char for char in code.replace("\n", "¶") if char in codepage.codepage))
 
-if not lines:
+if lines:
+    interpreter.links = lines
+    result = interpreter.quick_invoke(-1, *arguments[:2])
+    interpreter.yuno_print(result)
+else:
     interpreter.yuno_print(arguments[0] if arguments else 0)
-    raise SystemExit()
-
-interpreter.links = lines
-result = interpreter.quick_invoke(-1, *arguments[:2])
-
-interpreter.yuno_print(result)
 
 if "n" in flags:
     print()
