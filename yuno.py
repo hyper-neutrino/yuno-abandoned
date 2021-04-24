@@ -32,6 +32,7 @@ for key, val in zip("³⁴⁵⁶⁷", arguments):
 lines = lexer.tokenize("".join(char for char in code.replace("\n", "¶") if char in codepage.codepage))
 
 if not lines:
+    interpreter.yuno_print(arguments[0] if arguments else 0)
     raise SystemExit()
 
 interpreter.links = lines
