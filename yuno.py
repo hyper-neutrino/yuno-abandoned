@@ -39,5 +39,3 @@ interpreter.links = lines
 result = interpreter.quick_invoke(-1, *arguments[:2])
 
 interpreter.yuno_print(result)
-
-print()
