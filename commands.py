@@ -10,22 +10,22 @@ functions = {
     "⁷": Constant(10),
     "⁸": Constant([]),
     "⁹": Constant(256),
-    "_": attrdict(
+    "_": vectorize(attrdict(
         arity = 2,
         call = lambda x, y: x - y
-    ),
-    "+": attrdict(
+    )),
+    "+": vectorize(attrdict(
         arity = 2,
         call = lambda x, y: x + y
-    ),
+    )),
     ",": attrdict(
         arity = 2,
         call = lambda x, y: [x, y]
     ),
-    "H": attrdict(
+    "H": vectorize(attrdict(
         arity = 1,
-        call = lambda x: x / 2
-    )
+        call = lambda x: [x[:len(x) // 2], x[len(x) // 2:]] if stringQ(x) else x / 2
+    ), left = lambda x: not stringQ(x))
 }
 
 operators = {
