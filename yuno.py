@@ -34,9 +34,9 @@ lines = lexer.tokenize("".join(char for char in code.replace("\n", "¶") if char
 if lines:
     interpreter.links = lines
     result = interpreter.quick_invoke(-1, *arguments[:2])
-    interpreter.yuno_print(result)
+    output(result)
 else:
-    interpreter.yuno_print(arguments[0] if arguments else 0)
+    output(arguments[0] if arguments else 0)
 
 if "n" in flags:
     print()

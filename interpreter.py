@@ -1,5 +1,4 @@
-def yuno_print(x):
-    print(x, end = "") # TODO
+from utils import *
 
 def arities(links):
     return [link.arity for link in links]
@@ -31,6 +30,8 @@ def quick_invoke(index, *arguments):
     return val
 
 def invoke(link, *arguments):
+    commands.functions["⁸"] = Constant(arguments[0] if len(arguments) >= 1 else [])
+    commands.functions["⁹"] = Constant(arguments[1] if len(arguments) >= 2 else 256)
     if link == []:
         return [arguments[:1] or [0]][0]
     arity = len(arguments)

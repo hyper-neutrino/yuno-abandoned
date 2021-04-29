@@ -1,6 +1,10 @@
 # yuno
 yuno, a modern procedural-ish golfing language.
 
+## Inspiration from Jelly
+
+yuno is heavily inspired by Jelly. In fact, its chaining rules are essentially identical, or at least an extension thereof. The codepage is also the same, for convenience mostly. Finally, some things like dictionary decompression work exactly how Jelly does them. Please check out [Jelly by Dennis](https://github.com/DennisMitchell/jellylanguage/) as well.
+
 ## Type System
 
 yuno has the following types:

@@ -2,12 +2,6 @@ import codepage, commands, interpreter, re, sys
 
 from utils import *
 
-def base250(s):
-    x = 0
-    for a in s:
-        x = x * 250 + codepage.codepage.find(a)
-    return x
-
 def single_eval(item):
     if item[0] == "“":
         string = [[]]
@@ -23,11 +17,10 @@ def single_eval(item):
                 string = [list(map(codepage.codepage.find, line)) for line in string]
                 break
             elif char == "»":
-                string = [list("TODO - full compression")]
+                string = [list(map(decompress, string))]
                 break
             elif char == "«":
-                string = [list("TODO - mixed compression")]
-                break
+                raise SystemExit("This string terminator is not implemented yet.")
             else:
                 string[-1].append(char)
         if len(string) == 1:
@@ -37,12 +30,12 @@ def single_eval(item):
         return item[1]
     if item[0] == "⁽":
         val = base250(item[1:])
-        return val + 1001 if val < 30800 else val - 62599
+        return val + 750 if val <= 31500 else val - 62850
     if item[0] == "⁾":
         return list(item[1:])
     if "ı" in item:
         x, y = item.split("ı")
-        return single_eval(x or "0") + 1j * single_eval(y or "1")
+        return single_eval(x or "0") + sympy.I * single_eval(y or "1")
     if "ȷ" in item:
         x, y = item.split("ȷ")
         return single_eval(x or "1") * 10 ** single_eval(y or "3")
@@ -50,12 +43,14 @@ def single_eval(item):
         return -single_eval(item[1:] or "1")
     if "." in item:
         x, y = item.split(".")
-        return eval((x or "0") + "." + (y or "5"))
-    return eval(item)
+        return sympy.Number((x or "0") + "." + (y or "5"))
+    return sympy.Number(item)
 
 def yuno_eval(item):
     stripped = regex_singl.sub("", item)
-    return coerce(eval(regex_singl.sub(lambda m: repr(single_eval(m.group())), item) + "]" * (stripped.count("[") - stripped.count("]"))))
+    return coerce(eval(regex_singl.sub(lambda m: repr(single_eval(m.group())), item) + "]" * (stripped.count("[") - stripped.count("]")), {
+        "I": sympy.I
+    }))
 
 _re_decimal = rf"(0|-?\d*\.\d*|-?\d+|-)"
 _re_realnum = rf"({_re_decimal}?ȷ{_re_decimal}?|{_re_decimal})"
