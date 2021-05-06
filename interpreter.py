@@ -139,7 +139,8 @@ def getcall(code):
         return (2, sqvecd(mul))
 
 
-def run(program, index = -1, stack = None):
+def run(program, index = -1, stack = None, override = None):
+    code = override or program[index % len(program)]
     if stack is None:
         stack = []
     for arity, func in program[index % len(program)]:
@@ -151,6 +152,9 @@ def run(program, index = -1, stack = None):
             func = lambda *a: tuple(run(program, newindex, list(a)))
         elif arity == -3:
             arity = len(stack)
+        elif arity == -4:
+            arity, func = func
+            func = (lambda func: lambda *a: tuple(run(program, index, list(a), func)))(func)
         while len(stack) < arity:
             stack = [try_eval(input())] + stack
         if arity == 0:
