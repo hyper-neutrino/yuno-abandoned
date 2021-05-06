@@ -148,6 +148,8 @@ def vecm(func, obj, xcond = False):
     if isinstance(obj, seq):
         return fseq(lambda i: recur(obj[i]))
 
+sqvecd = lambda f: lambda x, y: vecd(f, x, y, stringQ, stringQ)
+
 def vecd(func, larg, rarg, xlcond = False, xrcond = False):
     recur = lambda l, r: vecd(func, l, r, xlcond, xrcond)
     if xlcond in [True, False]:
@@ -204,7 +206,7 @@ def yuno_print(x, root = True):
             print(end = ", ")
         yuno_print(x[-1], False)
         print(end = "]")
-    elif isinstance(x, sequence):
+    elif isinstance(x, seq):
         print(end = "{")
         index = 0
         while True:

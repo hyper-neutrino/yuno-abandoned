@@ -53,6 +53,15 @@ def getcalls(code):
             result[-1].append(call)
     return result
 
+def stringify(x):
+    if stringQ(x):
+        return "".join(x)
+    else:
+        return str(x)
+
+def anystr(*x):
+    return any(isinstance(q, str) or stringQ(q) for q in x)
+
 def getcall(code):
     char = code.pop(0)
     if char == "　":
@@ -65,7 +74,7 @@ def getcall(code):
             else:
                 slist[-1].append(code[0])
             code.pop(0)
-        term = code[0] if code else "」"
+        term = code.pop(0) if code else "」"
         if term == "」":
             slist = [list("".join([kanamap[x] for x in row])) for row in slist]
         elif term == "ア":
@@ -110,6 +119,25 @@ def getcall(code):
         else:
             char = "　"
         return (0, const(char))
+    elif char == "ア":
+        def add(x, y):
+            if anystr(x, y):
+                return list(stringify(x) + stringify(y))
+            return x + y
+        return (2, sqvecd(add))
+    elif char == "ミ":
+        def sub(x, y):
+            if stringQ(x) or stringQ(y) or isinstance(x, str) or isinstance(y, str):
+                raise SystemExit("No implementation for subtracting strings yet.")
+            return x - y
+        return (2, sqvecd(sub))
+    elif char == "ム":
+        def mul(x, y):
+            if anystr(x, y):
+                raise SystemExit("No implementation for multiplying strings yet (use repetition).")
+            return x * y
+        return (2, sqvecd(mul))
+
 
 def run(program, index = -1, stack = None):
     if stack is None:
