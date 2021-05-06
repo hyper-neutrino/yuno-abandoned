@@ -1,101 +1,137 @@
+import sympy
+
+from codepage import codepage
+from ka2sym import mapping as kanamap
+
 from utils import *
 
-def arities(links):
-    return [link.arity for link in links]
+skanalist = [x for x in codepage if x not in "」アエイオ"]
 
-def LCC(links):
-    copy = links[:]
-    if copy == []:
-        return False
-    if copy.pop(0).arity != 0:
-        return False
-    while copy:
-        if copy[0].arity == 1:
-            copy.pop(0)
+numcharmap = {
+    "１": "1",
+    "２": "2",
+    "３": "3",
+    "４": "4",
+    "５": "5",
+    "６": "6",
+    "７": "7",
+    "８": "8",
+    "９": "9",
+    "０": "0",
+    "ー": "-",
+    "。": ".",
+    "イ": "i",
+    "シ": "j"
+}
+
+def const(x):
+    return lambda: x
+
+def parsenum(s):
+    if s[0] == "-":
+        return -parsenum(s[1:])
+    if "i" in s:
+        x, y = s.split("i")
+        return parsenum(x or "0") + sympy.I * parsenum(y or "1")
+    if "j" in s:
+        x, y = s.split("j")
+        return parsenum(x or "1") * sympy.Rational(10) ** parsenum(y or "3")
+    if "." in s:
+        x, y = s.split(".")
+        s = (x or "0") + "." + (y or "5")
+    return sympy.Rational(s)
+
+def getcalls(code):
+    result = [[]]
+    while code:
+        if code[0] == "〜":
+            code.pop(0)
+            result.append([])
             continue
-        else:
-            if len(copy) == 1:
-                return False
-            if copy.pop(0).arity + copy.pop(0).arity != 2:
-                return False
-    return True
+        call = getcall(code)
+        if call is not None:
+            result[-1].append(call)
+    return result
 
-links = None
-ilist = []
-
-def quick_invoke(index, *arguments):
-    ilist.append(index)
-    val = invoke(links[index % len(links)], *arguments)
-    ilist.pop()
-    return val
-
-def invoke(link, *arguments):
-    commands.functions["⁸"] = Constant(arguments[0] if len(arguments) >= 1 else [])
-    commands.functions["⁹"] = Constant(arguments[1] if len(arguments) >= 2 else 256)
-    if link == []:
-        return [arguments[:1] or [0]][0]
-    arity = len(arguments)
-    if arity == 0:
-        if link[0] == []:
-            value = 0
-            link = link[1:]
-        elif link[0][0].arity == 0:
-            return invoke([link[0][1:], *link[1:]], link[0][0].call())
-        else:
-            return invoke(link, 0)
-    elif arity == 1:
-        copy = link[0][:]
-        if copy == []:
-            value = arguments[0]
-        elif copy[0].arity == 0:
-            value = copy[0].call()
-            copy.pop(0)
-        else:
-            value = arguments[0]
-        while copy:
-            a = arities(copy[:2])
-            if a == [2, 1]:
-                value = copy.pop(0).call(value, copy.pop(0).call(arguments[0]))
-            elif a == [2, 0]:
-                value = copy.pop(0).call(value, copy.pop(0).call())
-            elif a == [0, 2]:
-                value = copy.pop(1).call(copy.pop(0).call(), value)
-            elif a[0] == 2:
-                value = copy.pop(0).call(value, arguments[0])
-            elif a[0] == 1:
-                value = copy.pop(0).call(value)
+def getcall(code):
+    char = code.pop(0)
+    if char == "　":
+        return None
+    elif char == "「":
+        slist = [[]]
+        while code and code[0] not in "」アエイオ":
+            if code[0] == "「":
+                slist.append([])
             else:
-                yuno_print(value)
-                value = copy.pop(0).call()
-    elif arity == 2:
-        copy = link[0][:]
-        if copy == []:
-            value = arguments[0]
-        if arities(copy[:3]) == [2, 2, 2]:
-            value = copy.pop(0).call(arguments[0], arguments[1])
-        elif LCC(copy):
-            value = copy.pop(0).call()
+                slist[-1].append(code[0])
+            code.pop(0)
+        term = code[0] if code else "」"
+        if term == "」":
+            slist = [list("".join([kanamap[x] for x in row])) for row in slist]
+        elif term == "ア":
+            slist = [[skanalist.index(x) for x in row] for row in slist]
         else:
-            value = arguments[0]
-        while copy:
-            a = arities(copy[:2])
-            if a == [2, 2]:
-                if len(copy) >= 3 and LCC(copy[2:]):
-                    value = copy.pop(0).call(value, arguments[1])
-                    value = copy.pop(0).call(value, copy.pop(0).call())
-                else:
-                    value = copy.pop(0).call(value, copy.pop(0).call(arguments[0], arguments[1]))
-            elif a == [2, 0]:
-                value = copy.pop(0).call(value, copy.pop(0).call())
-            elif a == [0, 2]:
-                value = copy.pop(1).call(copy.pop(0).call(), value)
-            elif a[0] == 2:
-                value = copy.pop(0).call(value, arguments[1])
-            elif a[0] == 1:
-                value = copy.pop(0).call(value)
-            else:
-                yuno_print(value)
-                value = copy.pop(0).call()
-    if len(link) > 1:
-        return invoke([link[1][1:], *link[2:]], *link[1][0](value, *arguments))
-    return value
+            slist = ["TODO - string ending with " + term]
+        if len(slist) == 1:
+            slist = slist[0]
+        return (0, const(slist))
+    elif char in "１２３４５６７８９０。イシー":
+        neg = char == "ー"
+        dec = False
+        exp = False
+        cmp = False
+        s = numcharmap[char]
+        while code and (code[0] in "１２３４５６７８９０" or not dec and code[0] == "。" or not exp and code[0] == "シ" or not cmp and code[0] == "イ"):
+            char = code.pop(0)
+            if char in "１２３４５６７８９０":
+                s += numcharmap[char]
+            elif char == "。":
+                dec = True
+                s += "."
+            elif char == "シ":
+                exp = True
+                dec = False
+                s += "j"
+            elif char == "イ":
+                cmp = True
+                exp = False
+                dec = False
+                s += "i"
+        return (0, const(parsenum(s)))
+    elif char == "」":
+        if code:
+            char = kanamap[code.pop(0)]
+        else:
+            char = " "
+        return (0, const(char))
+    elif char == "カ":
+        if code:
+            char = code.pop(0)
+        else:
+            char = "　"
+        return (0, const(char))
+
+def run(program, index = -1, stack = None):
+    if stack is None:
+        stack = []
+    for arity, func in program[index % len(program)]:
+        if arity == -1:
+            offset, arity = func
+            func = lambda *a: tuple(run(program, index + offset, list(a)))
+        elif arity == -2:
+            newindex, arity = func
+            func = lambda *a: tuple(run(program, newindex, list(a)))
+        elif arity == -3:
+            arity = len(stack)
+        while len(stack) < arity:
+            stack = [try_eval(input())] + stack
+        if arity == 0:
+            val = []
+        else:
+            stack, val = stack[:-arity], stack[-arity:]
+        res = func(*val)
+        if type(res) == tuple:
+            stack += list(res)
+        else:
+            stack.append(res)
+    return stack

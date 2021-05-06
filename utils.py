@@ -1,190 +1,47 @@
-import codepage, commands, dictionary, sympy, sys
+import math, sympy, sys
 
-flags = sys.argv[1]
-
-class attrdict(dict):
-    def __init__(self, **kwargs):
-        dict.__init__(self, **kwargs)
-        self.__dict__ = self
-
-class Constant:
-    def __init__(self, value):
-        self.arity = 0
-        self.value = value
-    def call(self, *args, **kwargs):
-        return self.value
-    def __str__(self):
-        return f"<Constant Function: {self.value}>"
-    def __repr__(self):
-        return str(self)
-
-class sequence:
-    def __init__(self, next):
-        self._next = next
-        self.mem = []
-    @classmethod
-    def by_function(self, func, start = 1, step = 1):
-        def inner_next():
-            value = func(start)
-            start += step
-            return value
-        return sequence(inner_next)
-    def ensure(self, count):
-        while len(self.mem) < count:
-            self.next()
-    def __getitem__(self, index):
-        self.ensure(index + 1)
-        return self.mem[index]
-    def next(self):
-        val = self._next()
-        self.mem.append(val)
-        return val
-    def __str__(self):
-        self.ensure(10)
-        return "[%s, ...]" % ", ".join(map(str, self.mem[:10]))
-    def __repr__(self):
-        return str(self)
-
-class arithmetic_sequence(sequence):
-    def __init__(self, initial, delta):
-        sequence.__init__(self, self._next)
-        self.term = initial
-        self.delta = delta
-    def _next(self):
-        value = self.term
-        self.term = commands.functions["+"].call(self.term, self.delta)
-        return value
-
-class geometric_sequence(sequence):
-    def __init__(self, initial, ratio):
-        sequence.__init__(self, self._next)
-        self.term = initial
-        self.ratio = ratio
-    def _next(self):
-        value = self.term
-        self.term = commands.functions["×"].call(self.term, self.ratio)
-        return value
-
-class looping_sequence(sequence):
-    def __init__(self, terms):
-        sequence.__init__(self, self._next)
-        eq = all(x == terms[0] for x in terms[1:])
-        self.index = 0
-        self.terms = terms
-    def _next(self):
-        self.index += 1
-        return self.terms[(self.index - 1) % len(self.terms)]
-
-def coerce(x):
-    if isinstance(x, tuple) or isinstance(x, set):
-        return list(x)
-    return x
+flags = sys.argv[1] if len(sys.argv) > 1 else ""
 
 def yuno_typify(x):
     if isinstance(x, str):
         return list(x)
-    if isinstance(x, complex):
-        return x.real + x.imag * sympy.I
+    if isinstance(x, tuple):
+        return list(x)
+    if isinstance(x, dict):
+        return list(map(list, x.items()))
+    if isinstance(x, set):
+        return list(x)
     if isinstance(x, int) or isinstance(x, float):
         return sympy.Number(x)
-    try:
-        a = [yuno_typify(y) for y in x]
-        if a[-1] == ...:
-            if len(a) >= 3:
-                try:
-                    diffs = [commands.functions["_"].call(y, x) for x, y in zip(a[:-2], a[1:-1])]
-                    if all(x == diffs[0] for x in diffs[1:]):
-                        return arithmetic_sequence(a[0], diffs[0])
-                except:
-                    pass
-                try:
-                    rates = [commands.functions["÷"].call(y, x) for x, y in zip(a[:-2], a[1:-1])]
-                    if all(x == rates[0] for x in rates[1:]):
-                        return geometric_sequence(a[0], rates[0])
-                except:
-                    pass
-            return looping_sequence(a[:-1])
-        return a
-    except:
-        return x
+    if isinstance(x, complex):
+        return sympy.Number(x.real) + x.imag * sympy.I
+    return x
+
+def arith_seq(a, d):
+    a = yuno_typify(a)
+    d = yuno_typify(d)
+    return fseq(lambda i: a + (i - 1) * d)
+
+def geom_seq(a, r):
+    a = yuno_typify(a)
+    r = yuno_typify(r)
+    return fseq(lambda i: a * r ** (i - 1))
 
 def try_eval(x):
     try:
         return yuno_typify(eval(x, {
             "I": sympy.I,
-            "F": sympy.Rational
+            "F": sympy.Rational,
+            "P": sympy.pi,
+            "E": sympy.E,
+            "A": arith_seq,
+            "G": geom_seq
         }))
     except:
         return x
 
-class compose_seq(sequence):
-    def __init__(self, seq, lst, func):
-        sequence.__init__(self, self._next)
-        self.index = 0
-        self.seq = seq
-        self.lst = lst
-        self.func = func
-    def _next(self):
-        if self.index < len(self.lst):
-            val = self.func(self.lst[self.index], self.seq.next())
-            self.index += 1
-            return val
-        return self.seq.next()
-
-class dyad_seq(sequence):
-    def __init__(self, left, right, func):
-        sequence.__init__(self, self._next)
-        self.index = 0
-        self.left = left
-        self.right = right
-        self.func = func
-    def _next(self):
-        val = self.func(self.left[self.index], self.right[self.index])
-        self.index += 1
-        return val
-
 def stringQ(lst):
     return isinstance(lst, list) and all(isinstance(x, str) for x in lst)
-
-def vectorize(func, left = True, right = True, chop = False):
-    if isinstance(left, bool): left = lambda _: left
-    if isinstance(right, bool): right = lambda _: right
-    def inner(*args):
-        if func.arity == 0:
-            return func.call()
-        elif func.arity == 1:
-            argument = args[0]
-            if left(argument):
-                if isinstance(argument, list):
-                    return [inner(item) for item in argument]
-                elif isinstance(argument, sequence):
-                    return sequence(lambda: inner(argument.next()))
-            return func.call(argument)
-        else:
-            larg, rarg = args
-            lv = left(larg)
-            rv = right(rarg)
-            if lv and isinstance(larg, list):
-                if rv and isinstance(rarg, list):
-                    return [inner(L, R) for L, R in zip(larg, rarg)] + ([] if chop else larg[len(rarg):] + rarg[len(larg):])
-                elif rv and isinstance(rarg, sequence):
-                    return compose_seq(rarg, larg, inner)
-                else:
-                    return [inner(L, rarg) for L in larg]
-            elif lv and isinstance(larg, sequence):
-                if rv and isinstance(rarg, list):
-                    return compose_seq(larg, rarg, lambda x, y: inner(y, x))
-                elif rv and isinstance(rarg, sequence):
-                    return dyad_seq(larg, rarg, inner)
-                else:
-                    return sequence(lambda: inner(larg.next(), rarg))
-            else:
-                if rv and isinstance(rarg, list):
-                    return [inner(larg, R) for R in rarg]
-                elif rv and isinstance(rarg, sequence):
-                    return sequence(lambda: inner(larg, rarg.next()))
-            return func.call(larg, rarg)
-    return attrdict(arity = func.arity, call = inner)
 
 def base250(s):
     x = 0
@@ -220,6 +77,106 @@ def decompress(string):
                 this = " " + this
             result += this
     return result
+
+def unsympify(x):
+    if isinstance(x, int) or isinstance(x, float) or isinstance(x, complex):
+        return x
+    return eval(x.evalf(), {"I": 1j})
+
+def frange(x, y, z):
+    while (z > 0 and x < y) or (z < 0 and x > y):
+        yield x
+        x += z
+
+def indexinto(a, x):
+    x = unsympify(x)
+    if x.imag == 0:
+        if x.real % 1 == 0:
+            return a[int(x.real) - 1]
+        return [a[int(x.real) - 1], a[int(math.ceil(x.real)) - 1]]
+    else:
+        return [a[int(i) - 1] if i % 1 == 0 else [a[int(i) - 1], a[int(math.ceil(i)) - 1]] for i in [x.real, x.imag]]
+
+class seq:
+    def __init__(self, _next):
+        self._next = _next
+        self.cache = []
+    def __iter__(self):
+        pass
+    def __next__(self):
+        val = self._next()
+        self.cache.append(val)
+        return val
+    def __getitem__(self, x):
+        if isinstance(x, slice):
+            step = x.step or 1
+            if step < 0 and x.start is None:
+                raise RuntimeError("Negative step size of sequence must start at an index because infinite sequences cannot be reversed.")
+            start = x.start or 1
+            if x.stop is None and step > 0:
+                return fseq(lambda i: self[start + (i - 1) * step])
+            stop = x.stop or 0
+            maxi = start if step < 0 else stop
+            return [self[i] for i in frange(start, stop, step)]
+        x = unsympify(x)
+        b = math.ceil(max(x.real, x.imag))
+        while len(self.cache) <= b:
+            self.__next__()
+        return indexinto(self.cache, x)
+
+class fseq(seq):
+    def __init__(self, _map):
+        seq.__init__(self, None)
+        self._map = _map
+        self.index = 1
+    def __iter__(self):
+        self.index = 1
+    def __next__(self):
+        val = self._map(self.index)
+        self.index += 1
+        self.cache.append(val)
+        return val
+
+def vecm(func, obj, xcond = False):
+    recur = lambda o: vecm(func, o, xcond)
+    if xcond in [True, False]:
+        xcond = (lambda xcond: lambda _: xcond)(xcond)
+    if xcond(obj) or not isinstance(obj, list) and not isinstance(obj, seq):
+        return func(obj)
+    if isinstance(obj, list):
+        return [vecm(func, item, xcond) for item in obj]
+    if isinstance(obj, seq):
+        return fseq(lambda i: recur(obj[i]))
+
+def vecd(func, larg, rarg, xlcond = False, xrcond = False):
+    recur = lambda l, r: vecd(func, l, r, xlcond, xrcond)
+    if xlcond in [True, False]:
+        xlcond = (lambda xlcond: lambda _: xlcond)(xlcond)
+    if xrcond in [True, False]:
+        xrcond = (lambda xrcond: lambda _: xrcond)(xrcond)
+    lxvec = xlcond(larg) or not isinstance(larg, list) and not isinstance(larg, seq)
+    rxvec = xrcond(rarg) or not isinstance(rarg, list) and not isinstance(rarg, seq)
+    if lxvec:
+        if rxvec:
+            return func(larg, rarg)
+        if isinstance(rarg, list):
+            return [recur(larg, r) for r in rarg]
+        if isinstance(rarg, seq):
+            return fseq(lambda i: recur(larg, rarg[i]))
+    if isinstance(larg, list):
+        if rxvec:
+            return [recur(l, rarg) for l in larg]
+        if isinstance(rarg, list):
+            return [recur(l, r) for l, r in zip(larg, rarg)] + rarg[len(larg):] + larg[len(rarg):]
+        if isinstance(rarg, seq):
+            return fseq(lambda i: recur(larg[i - 1], rarg[i]) if i <= len(larg) else rarg[i])
+    if isinstance(larg, seq):
+        if rxvec:
+            return fseq(lambda i: recur(larg[i], rarg))
+        if isinstance(rarg, list):
+            return fseq(lambda i: recur(larg[i], rarg[i - 1]) if i <= len(rarg) else larg[i])
+        if isinstance(rarg, seq):
+            return fseq(lambda i: recur(larg[i], rarg[i]))
 
 def output(x):
     if "m" in flags:

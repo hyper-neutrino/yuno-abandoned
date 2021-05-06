@@ -25,3 +25,6 @@ def absolute(x):
     if isinstance(x, str):
         raise SystemExit("absolute value string is TODO")
     return abs(x)
+
+def tobase(x, b):
+    pass
