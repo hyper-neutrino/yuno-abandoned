@@ -81,7 +81,7 @@ def decompress(string):
 def unsympify(x):
     if isinstance(x, int) or isinstance(x, float) or isinstance(x, complex):
         return x
-    return eval(x.evalf(), {"I": 1j})
+    return eval(str(x.evalf()), {"I": 1j})
 
 def frange(x, y, z):
     while (z > 0 and x < y) or (z < 0 and x > y):
@@ -89,13 +89,13 @@ def frange(x, y, z):
         x += z
 
 def indexinto(a, x):
-    x = unsympify(x)
-    if x.imag == 0:
-        if x.real % 1 == 0:
-            return a[int(x.real) - 1]
-        return [a[int(x.real) - 1], a[int(math.ceil(x.real)) - 1]]
+    re, im = sympy.Number(x).as_real_imag()
+    if im == 0:
+        if re % 1 == 0:
+            return a[int(re) - 1]
+        return [a[int(re) - 1], a[int(math.ceil(re)) - 1]]
     else:
-        return [a[int(i) - 1] if i % 1 == 0 else [a[int(i) - 1], a[int(math.ceil(i)) - 1]] for i in [x.real, x.imag]]
+        return [a[int(i) - 1] if i % 1 == 0 else [a[int(i) - 1], a[int(math.ceil(i)) - 1]] for i in [re, im]]
 
 class seq:
     def __init__(self, _next):
@@ -118,8 +118,8 @@ class seq:
             stop = x.stop or 0
             maxi = start if step < 0 else stop
             return [self[i] for i in frange(start, stop, step)]
-        x = unsympify(x)
-        b = math.ceil(max(x.real, x.imag))
+        re, im = sympy.Number(x).as_real_imag()
+        b = math.ceil(max(re, im))
         while len(self.cache) <= b:
             self.__next__()
         return indexinto(self.cache, x)
@@ -180,13 +180,19 @@ def vecd(func, larg, rarg, xlcond = False, xrcond = False):
         if isinstance(rarg, seq):
             return fseq(lambda i: recur(larg[i], rarg[i]))
 
+def unmath(x):
+    if isinstance(x, list):
+        return list(map(unmath, x))
+    if isinstance(x, seq):
+        return fseq(lambda i: unmath(x[i]))
+    try:
+        return unsympify(x)
+    except:
+        return x
+
 def output(x):
     if "m" in flags:
-        try:
-            x = x.evalf()
-            x = eval(str(x), {"I": 1j})
-        except:
-            pass
+        x = unmath(x)
     if "p" in flags:
         print(x, end = "")
     else:

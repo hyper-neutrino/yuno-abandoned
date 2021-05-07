@@ -1,0 +1,23 @@
+１２３４５６７８９０ - numbers
+。．　　　　　　　　 - decimals (mapped to 。 in the source code)
+ー　　　　　　　　　 - negative numbers
+シ　　　　　　　　　 - exponential
+イ　　　　　　　　　 - complex
+
+「。「。」 - normal string (mapped by ka2sym.py)
+「。。。ア - codepage index
+「。。。エ - unmapped string (as appears in source code)
+「。。。イ - dictionary compressed string
+「。。。オ -
+
+」。 - character literal
+
+ア　　 - add
+ミ　　 - minus
+ム　　 - multiplication
+ディ　 - true division
+ヂ    - floor division
+ラ　　 - range; [1 .. z], [0 .. z], [[1 .. 1+bi], [2 .. 2+bi], ..., [a .. a+bi]], [[0 .. bi], [-1 .. -1+bi], ..., [a .. a+bi]]; chr cast to int
+レ　　 - range; [0 .. z], [-1 .. z], ...
+リ　　 - range; [1 .. z-1], [0 .. z+1], ...
+ロ　　 - range; [0 .. z-1], [-1 .. z+1], ...

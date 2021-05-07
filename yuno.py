@@ -88,7 +88,13 @@ if replaced:
     program = interpreter.getcalls(replaced)
     stack = interpreter.run(program)
     if "s" in flags:
-        output(stack)
+        print(end = "[")
+        if stack:
+            for x in stack[:-1]:
+                output(x)
+                print(end = ", ")
+            output(stack[-1])
+        print(end = "]")
     else:
         output(stack[-1] if stack else 0)
 else:

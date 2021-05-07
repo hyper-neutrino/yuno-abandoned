@@ -28,14 +28,14 @@ def const(x):
     return lambda: x
 
 def parsenum(s):
-    if s[0] == "-":
-        return -parsenum(s[1:])
     if "i" in s:
         x, y = s.split("i")
         return parsenum(x or "0") + sympy.I * parsenum(y or "1")
     if "j" in s:
         x, y = s.split("j")
         return parsenum(x or "1") * sympy.Rational(10) ** parsenum(y or "3")
+    if s[0] == "-":
+        return -parsenum(s[1:] or "1")
     if "." in s:
         x, y = s.split(".")
         s = (x or "0") + "." + (y or "5")
@@ -61,6 +61,33 @@ def stringify(x):
 
 def anystr(*x):
     return any(isinstance(q, str) or stringQ(q) for q in x)
+
+def getfun(code):
+    result = []
+    while code and code[0] not in ["〜", "；"]:
+        call = getcall(code)
+        if call is not None:
+            result.append(call)
+    if code:
+        code.pop(0)
+    return result
+
+def yrange(x, lo, hi):
+    if isinstance(x, str):
+        x = sympy.Number(ord(x))
+    re, im = x.as_real_imag()
+    if re > 0:
+        main = list(map(sympy.Number, range(lo, int(re) + hi)))
+    else:
+        main = list(map(sympy.Number, range(lo - 1, int(sympy.ceiling(re)) - hi, -1)))
+    if im == 0:
+        return main
+    else:
+        if im > 0:
+            dim = list(map(sympy.Number, range(int(im) + 1)))
+        else:
+            dim = list(map(sympy.Number, range(0, int(sympy.ceiling(im)) - 1, -1)))
+        return [[x + y * sympy.I for y in dim] for x in main]
 
 def getcall(code):
     char = code.pop(0)
@@ -90,18 +117,23 @@ def getcall(code):
         exp = False
         cmp = False
         s = numcharmap[char]
-        while code and (code[0] in "１２３４５６７８９０" or not dec and code[0] == "。" or not exp and code[0] == "シ" or not cmp and code[0] == "イ"):
+        while code and (code[0] in "１２３４５６７８９０" or not dec and code[0] == "。" or not exp and code[0] == "シ" or not cmp and code[0] == "イ" or not neg and code[0] == "ー"):
             char = code.pop(0)
             if char in "１２３４５６７８９０":
                 s += numcharmap[char]
             elif char == "。":
                 dec = True
                 s += "."
+            elif char == "ー":
+                neg = True
+                s += "-"
             elif char == "シ":
+                neg = False
                 exp = True
                 dec = False
                 s += "j"
             elif char == "イ":
+                neg = False
                 cmp = True
                 exp = False
                 dec = False
@@ -137,7 +169,30 @@ def getcall(code):
                 raise SystemExit("No implementation for multiplying strings yet (use repetition).")
             return x * y
         return (2, sqvecd(mul))
-
+    elif char == "ディ":
+        def tdiv(x, y):
+            if anystr(x, y):
+                raise SystemExit("No implementation for true-dividing strings yet (use list cutting).")
+            if y == 0:
+                return sympy.Number(0)
+            return x / y
+        return (2, sqvecd(tdiv))
+    elif char == "ヂ":
+        def fdiv(x, y):
+            if anystr(x, y):
+                raise SystemExit("No implementation for floor-dividing strings yet (use list cutting).")
+            if y == 0:
+                return sympy.Number(0)
+            return x // y
+        return (2, sqvecd(fdiv))
+    elif char == "ラ":
+        return (1, lambda x: vecm(lambda y: yrange(y, 1, 1), x))
+    elif char == "レ":
+        return (1, lambda x: vecm(lambda y: yrange(y, 0, 1), x))
+    elif char == "リ":
+        return (1, lambda x: vecm(lambda y: yrange(y, 1, 0), x))
+    elif char == "ロ":
+        return (1, lambda x: vecm(lambda y: yrange(y, 0, 0), x))
 
 def run(program, index = -1, stack = None, override = None):
     code = override or program[index % len(program)]
@@ -163,7 +218,17 @@ def run(program, index = -1, stack = None, override = None):
             stack, val = stack[:-arity], stack[-arity:]
         res = func(*val)
         if type(res) == tuple:
-            stack += list(res)
+            stack += list(map(simpl, res))
         else:
-            stack.append(res)
+            stack.append(simpl(res))
     return stack
+
+def simpl(r):
+    if isinstance(r, list):
+        return list(map(simpl, r))
+    if isinstance(r, seq):
+        return fseq(lambda i: simpl(r[i]))
+    try:
+        return sympy.simplify(r)
+    except:
+        return r
