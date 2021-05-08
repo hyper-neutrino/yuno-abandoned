@@ -86,7 +86,7 @@ if "c" in flags:
 
 if replaced:
     program = interpreter.getcalls(replaced)
-    stack = interpreter.run(program)
+    stack = interpreter.run(program, stack = arguments[::-1])
     if "s" in flags:
         print(end = "[")
         if stack:

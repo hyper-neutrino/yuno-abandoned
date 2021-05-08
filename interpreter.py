@@ -28,6 +28,8 @@ def const(x):
     return lambda: x
 
 def parsenum(s):
+    if "," in s:
+        return list(map(parsenum, s.split(",")))
     if "i" in s:
         x, y = s.split("i")
         return parsenum(x or "0") + sympy.I * parsenum(y or "1")
@@ -89,6 +91,18 @@ def yrange(x, lo, hi):
             dim = list(map(sympy.Number, range(0, int(sympy.ceiling(im)) - 1, -1)))
         return [[x + y * sympy.I for y in dim] for x in main]
 
+def listwrap(x):
+    return list(x) if isinstance(x, list) or isinstance(x, tuple) or isinstance(x, set) or isinstance(x, dict) else [x]
+
+def listcoerce(x):
+    return list(x) if isinstance(x, list) or isinstance(x, tuple) or isinstance(x, set) or isinstance(x, dict) else x
+
+def getnextcall(code):
+    call = None
+    while call is None:
+        call = getcall(code)
+    return call
+
 def getcall(code):
     char = code.pop(0)
     if char == "　":
@@ -106,6 +120,8 @@ def getcall(code):
             slist = [list("".join([kanamap[x] for x in row])) for row in slist]
         elif term == "ア":
             slist = [[skanalist.index(x) for x in row] for row in slist]
+        elif term == "エ":
+            slist = [list("".join(x)) for x in slist]
         else:
             slist = ["TODO - string ending with " + term]
         if len(slist) == 1:
@@ -117,10 +133,13 @@ def getcall(code):
         exp = False
         cmp = False
         s = numcharmap[char]
-        while code and (code[0] in "１２３４５６７８９０" or not dec and code[0] == "。" or not exp and code[0] == "シ" or not cmp and code[0] == "イ" or not neg and code[0] == "ー"):
+        while code and (code[0] in "１２３４５６７８９０、" or not dec and code[0] == "。" or not exp and code[0] == "シ" or not cmp and code[0] == "イ" or not neg and code[0] == "ー"):
             char = code.pop(0)
             if char in "１２３４５６７８９０":
                 s += numcharmap[char]
+            elif char == "、":
+                neg = dec = exp = cmp = False
+                s += ","
             elif char == "。":
                 dec = True
                 s += "."
@@ -193,27 +212,68 @@ def getcall(code):
         return (1, lambda x: vecm(lambda y: yrange(y, 1, 0), x))
     elif char == "ロ":
         return (1, lambda x: vecm(lambda y: yrange(y, 0, 0), x))
+    elif char == "ン":
+        return (1, lambda x: vecm(lambda y: y + 1, x))
+    elif char == "デ":
+        return (1, lambda x: vecm(lambda y: y - 1, x))
+    elif char == "コ":
+        arity, func = getnextcall(code)
+        def handle(*a):
+            a = list(a)
+            re, im = a[0].as_real_imag()
+            a[0] = im
+            out = run(_program, _index, a, [(arity, func)])
+            return tuple(re + x * sympy.I for x in out)
+        return (arity, handle)
+    elif char == "＄":
+        a1, f1 = getnextcall(code)
+        a2, f2 = getnextcall(code)
+        return (a1, lambda *a: (lambda b: f2(*(b[-a2:] if a2 != -1 else b)))(listwrap(f1(*a))))
+    elif char == "ネ":
+        return (1, lambda x: vecm(lambda y: y.swapcase() if isinstance(y, str) else -y, x))
+    elif char == "マ":
+        arity, func = getnextcall(code)
+        def handle(*a):
+            a = list(a)
+            if isinstance(a[0], seq):
+                return fseq(lambda i: run(_program, _index, [a[0][i], *a[1:]], [(arity, func)]))
+            if not isinstance(a[0], list):
+                a[0] = yrange(a[0], 1, 1)
+            return [listcoerce(run(_program, _index, [q, *a[1:]], [(arity, func)])) for q in a[0]]
+        return (arity, handle)
+    elif char == "ヌ":
+        return (1, lambda x: vecm(lambda k: len(k) if isinstance(k, list) or isinstance(k, str) else len(str(k).replace(" ", "")), x, lambda k: not isinstance(k, seq)))
+    elif char == "オ":
+        return (-1, lambda *a: tuple(run(_program, _index - 1, list(a))))
+    elif char == "ウ":
+        return (-1, lambda *a: tuple(run(_program, _index + 1, list(a))))
+    elif char == "？":
+        a1, f1 = getnextcall(code)
+        a2, f2 = getnextcall(code)
+        a3, f3 = getnextcall(code)
+        def handle(*a):
+            stack = list(a)
+            res = listwrap(run(_program, _index, stack[:], [(a1, f1)]))[-1]
+            return tuple(run(_program, _index, stack, [(a2, f2) if res else (a3, f3)]))
+        return (-1, handle)
 
 def run(program, index = -1, stack = None, override = None):
+    global _program, _index, _stack, _override
     code = override or program[index % len(program)]
     if stack is None:
         stack = []
-    for arity, func in program[index % len(program)]:
-        if arity == -1:
-            offset, arity = func
-            func = lambda *a: tuple(run(program, index + offset, list(a)))
-        elif arity == -2:
-            newindex, arity = func
-            func = lambda *a: tuple(run(program, newindex, list(a)))
-        elif arity == -3:
-            arity = len(stack)
-        elif arity == -4:
-            arity, func = func
-            func = (lambda func: lambda *a: tuple(run(program, index, list(a), func)))(func)
+    stack = list(stack)
+    for arity, func in code:
+        _program = [*program[:index], code, *program[index + 1:]]
+        _index = index
+        _stack = stack
+        _override = override
         while len(stack) < arity:
             stack = [try_eval(input())] + stack
         if arity == 0:
             val = []
+        elif arity == -1:
+            stack, val = [], stack
         else:
             stack, val = stack[:-arity], stack[-arity:]
         res = func(*val)
@@ -228,6 +288,8 @@ def simpl(r):
         return list(map(simpl, r))
     if isinstance(r, seq):
         return fseq(lambda i: simpl(r[i]))
+    if isinstance(r, str):
+        return r
     try:
         return sympy.simplify(r)
     except:

@@ -3,6 +3,7 @@
 ー　　　　　　　　　 - negative numbers
 シ　　　　　　　　　 - exponential
 イ　　　　　　　　　 - complex
+、　　　　　　　　　 - number list (only if it comes directly after a number; otherwise, a function)
 
 「。「。」 - normal string (mapped by ka2sym.py)
 「。。。ア - codepage index
@@ -21,3 +22,14 @@
 レ　　 - range; [0 .. z], [-1 .. z], ...
 リ　　 - range; [1 .. z-1], [0 .. z+1], ...
 ロ　　 - range; [0 .. z-1], [-1 .. z+1], ...
+ン　　 - increment
+デ　　 - decrement
+ネ　　 - negative / swap case
+ヌ　　 - length (number of) for lists / strings, digit count for integers (vectorizes over sequences), behavior is deterministic but probably not useful for non-integer numbers
+
+コ　　 - apply the next function to the complex component of the number (formally, isolate the imag component of the first argument as a real, run, multiply by I, add the real component back)
+＄　　 - bind the next two functions with the arity of the first
+マ　　 - map (for each of first argument; numbers -> range according to ラ); if the mapped function yields multiple outputs to the stack, they are all given
+オ　　 - previous line
+ウ　　 - next line
+？　　 - ?abc - apply a, but push back the elements that it consumes, then check the TOS, and if it's truthy, run b, otherwise, run c
