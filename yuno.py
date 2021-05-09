@@ -11,10 +11,14 @@ yuno - a modern stack-based golfing language
 $ python yuno.py <flags> <file | code> [arguments...]
 
 Flags: h - display this help message and exit
-       b - interpret code in binary
+       b - interpret code in bytecode
+       B - output code in bytecode
        C - format as a CGCC submission and exit
        c - count bytes and exit
+       d - output the program list right before interpretation (debug) and exit
+       D - output code in bytecode as python repr
        f - read from a file
+       i - when the stack is too small, input will be taken from STDIN rather than using the first argument
        m - exit math mode before outputting (remove sympy representation)
        n - output a newline
        p - print using python's string representation rather than yuno's
@@ -61,19 +65,21 @@ while code:
 
 if "C" in flags:
     if replaced:
-        raise SystemExit(f"""# [yuno], {len(replaced)} [bytes]
+        print(f"""# [yuno], {len(replaced)} [bytes]
 
     %s
 
 [yuno]: https://github.com/hyper-neutrino/yuno
 [bytes]: https://github.com/hyper-neutrino/yuno/wiki/Byte-count""" % "".join(replaced).replace("\n", "\n    "))
+        raise SystemExit
     else:
-        raise SystemExit(f"""# [yuno], {len(replaced)} [bytes]
+        print(f"""# [yuno], {len(replaced)} [bytes]
 
 <pre><code></code></pre>
 
 [yuno]: https://github.com/hyper-neutrino/yuno
 [bytes]: https://github.com/hyper-neutrino/yuno/wiki/Byte-count""")
+    raise SystemExit
 
 for i in range(len(replaced)):
     if replaced[i] == "．":
@@ -82,10 +88,22 @@ for i in range(len(replaced)):
         replaced[i] = "〜"
 
 if "c" in flags:
-    raise SystemExit(f"{len(replaced)} bytes." + "\n\n" + "".join(f"[{x}]" for x in replaced))
+    print(f"{len(replaced)} bytes." + "\n\n" + "".join(f"[{x}]" for x in replaced))
+    raise SystemExit
+
+if "B" in flags:
+    print("".join(map(chr, [codepage.codepage.index(x) for x in replaced])))
+    raise SystemExit
+
+if "D" in flags:
+    print(repr("".join(map(chr, [codepage.codepage.index(x) for x in replaced]))))
+    raise SystemExit
 
 if replaced:
     program = interpreter.getcalls(replaced)
+    if "d" in flags:
+        print(program)
+        raise SystemExit
     stack = interpreter.run(program, stack = arguments[::-1])
     if "s" in flags:
         print(end = "[")

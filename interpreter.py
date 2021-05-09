@@ -5,6 +5,8 @@ from ka2sym import mapping as kanamap
 
 from utils import *
 
+GLOBAL_REGISTER = 0
+
 skanalist = [x for x in codepage if x not in "」アエイオ"]
 
 numcharmap = {
@@ -133,7 +135,12 @@ def getcall(code):
         exp = False
         cmp = False
         s = numcharmap[char]
-        while code and (code[0] in "１２３４５６７８９０、" or not dec and code[0] == "。" or not exp and code[0] == "シ" or not cmp and code[0] == "イ" or not neg and code[0] == "ー"):
+        while code and (code[0] in "１２３４５６７８９０" or \
+                           not dec and code[0] == "。" or \
+                           not exp and code[0] == "シ" or \
+                           not cmp and code[0] == "イ" or \
+                           not neg and code[0] == "ー" or \
+                           code[0] == "、" and len(code) > 1 and code[0] in "１２３４５６７８９０。イシー"):
             char = code.pop(0)
             if char in "１２３４５６７８９０":
                 s += numcharmap[char]
@@ -204,6 +211,14 @@ def getcall(code):
                 return sympy.Number(0)
             return x // y
         return (2, sqvecd(fdiv))
+    elif char == "％":
+        def modulo(x, y):
+            if anystr(x, y):
+                raise SystemExit("No implementation for modulo on strings yet.")
+            if y == 0:
+                return sympy.Number(0)
+            return x % y
+        return (2, sqvecd(modulo))
     elif char == "ラ":
         return (1, lambda x: vecm(lambda y: yrange(y, 1, 1), x))
     elif char == "レ":
@@ -241,6 +256,16 @@ def getcall(code):
                 a[0] = yrange(a[0], 1, 1)
             return [listcoerce(run(_program, _index, [q, *a[1:]], [(arity, func)])) for q in a[0]]
         return (arity, handle)
+    elif char == "メ":
+        arity, func = getnextcall(code)
+        def handle(*a):
+            a = list(a)
+            if isinstance(a[1], seq):
+                return fseq(lambda i: run(_program, _index, [a[0], a[1][i], *a[2:]], [(arity, func)]))
+            if not isinstance(a[1], list):
+                a[1] = yrange(a[1], 1, 1)
+            return [listcoerce(run(_program, _index, [a[0], q, *a[2:]], [(arity, func)])) for q in a[1]]
+        return (arity, handle)
     elif char == "ヌ":
         return (1, lambda x: vecm(lambda k: len(k) if isinstance(k, list) or isinstance(k, str) else len(str(k).replace(" ", "")), x, lambda k: not isinstance(k, seq)))
     elif char == "オ":
@@ -256,10 +281,50 @@ def getcall(code):
             res = listwrap(run(_program, _index, stack[:], [(a1, f1)]))[-1]
             return tuple(run(_program, _index, stack, [(a2, f2) if res else (a3, f3)]))
         return (-1, handle)
+    elif char == "フ":
+        fs = []
+        while code and code[0] != "；":
+            call = getcall(code)
+            if call is not None:
+                fs.append(call)
+        if code:
+            code.pop(0)
+        return (fs[0][0] if fs else arity, lambda *a: tuple(listwrap(run(_program, _index, list(a), fs))))
+    elif char == "モ":
+        code.insert(0, "マ")
+        code.insert(1, "フ")
+        return None
+    elif char == "、":
+        return (2, lambda a, b: [a, b])
+    elif char == "ップ":
+        code.insert(0, "メ")
+        code.insert(1, "マ")
+        return None
+    elif char == "ｒ":
+        return (0, lambda: GLOBAL_REGISTER)
+    elif char == "Ｒ":
+        def setreg(x):
+            global GLOBAL_REGISTER
+            GLOBAL_REGISTER = x
+            return x
+        return (1, setreg)
+    elif char == "ル":
+        a1, f1 = getnextcall(code)
+        def handle():
+            global GLOBAL_REGISTER
+            stack = [GLOBAL_REGISTER]
+            GLOBAL_REGISTER = (listwrap(run(_program, _index, stack, [(a1, f1)])) or [sympy.Number(0)])[-1]
+            return ()
+        return (0, handle)
+    elif char == "ドゥ":
+        return (1, lambda a: (a, a))
+    elif char == "＠":
+        return (2, lambda a, b: (b, a))
 
 def run(program, index = -1, stack = None, override = None):
     global _program, _index, _stack, _override
-    code = override or program[index % len(program)]
+    index %= len(program)
+    code = override or program[index]
     if stack is None:
         stack = []
     stack = list(stack)
@@ -269,7 +334,7 @@ def run(program, index = -1, stack = None, override = None):
         _stack = stack
         _override = override
         while len(stack) < arity:
-            stack = [try_eval(input())] + stack
+            stack = [get_input()] + stack
         if arity == 0:
             val = []
         elif arity == -1:

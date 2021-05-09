@@ -2,6 +2,11 @@ import math, sympy, sys
 
 flags = sys.argv[1] if len(sys.argv) > 1 else ""
 
+ARGS = []
+
+def get_input():
+    return try_eval(input() if "i" in flags or len(sys.argv) <= 3 else sys.argv[3])
+
 def yuno_typify(x):
     if isinstance(x, str):
         return list(x)
@@ -89,13 +94,17 @@ def frange(x, y, z):
         x += z
 
 def indexinto(a, x):
-    re, im = sympy.Number(x).as_real_imag()
+    re, im = sympy.simplify(x).as_real_imag()
     if im == 0:
         if re % 1 == 0:
-            return a[int(re) - 1]
-        return [a[int(re) - 1], a[int(math.ceil(re)) - 1]]
+            return a[(int(re) - 1) % len(a)]
+        return [a[(int(re) - 1) % len(a)], a[(int(math.ceil(re)) - 1) % len(a)]]
     else:
-        return [a[int(i) - 1] if i % 1 == 0 else [a[int(i) - 1], a[int(math.ceil(i)) - 1]] for i in [re, im]]
+        try:
+            v = [indexinto(k, im) for k in [*a, a[0]][(int(re) - 1) % len(a):][:1 + (re % 1 != 0)]]
+            return v[0] if len(v) == 1 else v
+        except:
+            return [a[(int(i) - 1) % len(a)] if i % 1 == 0 else [a[(int(i) - 1) % a], a[(int(math.ceil(i)) - 1) % len(a)]] for i in [re, im]]
 
 class seq:
     def __init__(self, _next):
