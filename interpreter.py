@@ -148,6 +148,13 @@ def liststr(x):
 def listcoerce(x):
     return list(x) if ispyiter(x) else x
 
+def listnumord(x, y, autolist = lambda x: x):
+    if not isiter(x) and isiter(y):
+        return (y, x)
+    if not isiter(x):
+        return (autolist(x), y)
+    return (x, y)
+
 def getnextcall(code):
     call = None
     while call is None:
