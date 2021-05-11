@@ -58,8 +58,7 @@ def getcalls(code):
     return result
 
 def split(a, x, sub = False):
-    if not isiter(a) and isiter(x):
-        return split(x, a)
+    a, x = listnumord(a, x, liststr)
     if not sub:
         x = [x]
     xl = len(x)
@@ -82,11 +81,10 @@ def split(a, x, sub = False):
                 self.cache.append(result)
                 return result
         return splitseq(a, x)
-    a = liststr(a)
     results = [[]]
     i = 0
     while i < len(a):
-        if (a[i:i + xl] if sub else a[i]) == x:
+        if a[i:i + xl] == x:
             results.append([])
             i += xl
         else:
