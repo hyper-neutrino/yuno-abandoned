@@ -413,11 +413,9 @@ def getcall(code):
     elif char == "ジ":
         return (1, lambda a: (lambda q: [[k[i] for k in a] for i in range(q)])(max(map(len, a))))
     elif char == "ッタ":
-        def tail(a, b):
-            if not (isinstance(a, list) or isinstance(a, seq)) and (isinstance(b, list) or isinstance(b, seq)):
-                return tail(b, a)
-            return vecm(lambda x: a[x - 1:], b)
-        return (2, tail)
+        return (2, lambda a, b: (lambda x, y: vecm(lambda q: x[q - 1:], y))(*listnumord(a, b)))
+    elif char == "ヘ":
+        return (2, lambda a, b: (lambda x, y: vecm(lambda q: x[:q], y))(*listnumord(a, b)))
 
 def run(program, index = -1, stack = None, override = None):
     global _program, _index, _stack, _override
