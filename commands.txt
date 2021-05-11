@@ -9,7 +9,7 @@
 「。。。ア - codepage index
 「。。。エ - unmapped string (as appears in source code)
 「。。。イ - dictionary compressed string
-「。。。オ -
+「。。。オ - base 250 integer literal
 
 」。 - character literal
 
@@ -33,6 +33,11 @@
 Ｒ　　 - set the register to the TOS
 ドゥ　 - duplicate
 ＠　　 - swap top two
+パ　　 - append
+タ　　 - tack (reverse append)
+ス　　 - split*, split the TOS by the second item (expects a list or sequence to split) (splitting a sequence returns a sequence of lists, so the last one will probably not generate properly - use sequence cut if you want a sequence of sequences)
+ッパ　 - prefixes
+ッペ　 - permutations
 
 コ　　 - apply the next function to the complex component of the number (formally, isolate the imag component of the first argument as a real, run, multiply by I, add the real component back)
 ＄　　 - bind the next two functions with the arity of the first
@@ -45,3 +50,6 @@
 モ　　 - alias for マフ
 ップ　 - outer product table (alias for メマ)
 ル　　 - apply the next function to the global register (open a temporary stack with the register, call, set TOS or 0 to the register)
+ヴェ　 - vectorize once
+
+* infer the argument order; in most cases, one argument should be a list and one a number/something, so if they are in the wrong order, it will infer. you can likely work around this with wrap or range, etc

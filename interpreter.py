@@ -93,6 +93,9 @@ def yrange(x, lo, hi):
             dim = list(map(sympy.Number, range(0, int(sympy.ceiling(im)) - 1, -1)))
         return [[x + y * sympy.I for y in dim] for x in main]
 
+def listrange(x):
+    return list(x) if isinstance(x, list) or isinstance(x, tuple) or isinstance(x, set) or isinstance(x, dict) else yrange(x, 1, 1)
+
 def listwrap(x):
     return list(x) if isinstance(x, list) or isinstance(x, tuple) or isinstance(x, set) or isinstance(x, dict) else [x]
 
@@ -104,6 +107,13 @@ def getnextcall(code):
     while call is None:
         call = getcall(code)
     return call
+
+def frombase(digits, base):
+    tot = sympy.Number(0)
+    for x in digits[::-1]:
+        tot *= base
+        tot += x
+    return tot
 
 def getcall(code):
     char = code.pop(0)
@@ -124,6 +134,8 @@ def getcall(code):
             slist = [[skanalist.index(x) for x in row] for row in slist]
         elif term == "エ":
             slist = [list("".join(x)) for x in slist]
+        elif term == "オ":
+            slist = [frombase([skanalist.index(x) for x in row], 250) for row in slist]
         else:
             slist = ["TODO - string ending with " + term]
         if len(slist) == 1:
@@ -320,6 +332,27 @@ def getcall(code):
         return (1, lambda a: (a, a))
     elif char == "＠":
         return (2, lambda a, b: (b, a))
+    elif char == "パ":
+        return (2, lambda a, b: listwrap(a) + listwrap(b))
+    elif char == "タ":
+        return (2, lambda a, b: listwrap(b) + listwrap(a))
+    elif char == "ッパ":
+        def prefixes(a):
+            if isinstance(a, list):
+                return [a[:i] for i in range(len(a) + 1)]
+            elif isinstance(a, seq):
+                return fseq(lambda i: a[:i])
+            else:
+                return prefixes(yrange(a, 1, 1))
+        return (1, prefixes)
+    elif char == "ッパ":
+        pass
+    elif char == "ヴェ":
+        arity, func = getnextcall(code)
+        def handle(*a):
+            a = list(map(listrange, a))
+            return [func(*x) for x in zip(*a)]
+        return (arity, handle)
 
 def run(program, index = -1, stack = None, override = None):
     global _program, _index, _stack, _override
