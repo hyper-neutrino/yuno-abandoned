@@ -57,6 +57,43 @@ def getcalls(code):
             result[-1].append(call)
     return result
 
+def split(a, x, sub = False):
+    if not isiter(a) and isiter(x):
+        return split(x, a)
+    if not sub:
+        x = [x]
+    xl = len(x)
+    if isinstance(a, seq):
+        class splitseq(seq):
+            def __init__(self, pseq, psplit):
+                seq.__init__(self, None)
+                self.pseq = pseq
+                self.psplit = psplit
+                self.psl = len(psplit)
+                self.index = 1
+            def __iter__(self):
+                self.index = 1
+            def __next__(self):
+                result = []
+                while self.pseq[self.index:self.index + self.psl] != self.psplit:
+                    result.append(self.pseq[self.index])
+                    self.index += 1
+                self.index += self.psl
+                self.cache.append(result)
+                return result
+        return splitseq(a, x)
+    a = liststr(a)
+    results = [[]]
+    i = 0
+    while i < len(a):
+        if (a[i:i + xl] if sub else a[i]) == x:
+            results.append([])
+            i += xl
+        else:
+            results[-1].append(a[i])
+            i += 1
+    return results
+
 def stringify(x):
     if stringQ(x):
         return "".join(x)
@@ -93,14 +130,23 @@ def yrange(x, lo, hi):
             dim = list(map(sympy.Number, range(0, int(sympy.ceiling(im)) - 1, -1)))
         return [[x + y * sympy.I for y in dim] for x in main]
 
+def ispyiter(x):
+    return isinstance(x, list) or isinstance(x, tuple) or isinstance(x, set) or isinstance(x, dict)
+
+def isiter(x):
+    return isinstance(x, list) or isinstance(x, seq)
+
 def listrange(x):
-    return list(x) if isinstance(x, list) or isinstance(x, tuple) or isinstance(x, set) or isinstance(x, dict) else yrange(x, 1, 1)
+    return list(x) if ispyiter(x) else yrange(x, 1, 1)
 
 def listwrap(x):
-    return list(x) if isinstance(x, list) or isinstance(x, tuple) or isinstance(x, set) or isinstance(x, dict) else [x]
+    return list(x) if ispyiter(x) else [x]
+
+def liststr(x):
+    return list(x) if ispyiter(x) else list(map(int, str(x))) if x % 1 == 0 else list(str(x))
 
 def listcoerce(x):
-    return list(x) if isinstance(x, list) or isinstance(x, tuple) or isinstance(x, set) or isinstance(x, dict) else x
+    return list(x) if ispyiter(x) else x
 
 def getnextcall(code):
     call = None
@@ -336,6 +382,10 @@ def getcall(code):
         return (2, lambda a, b: listwrap(a) + listwrap(b))
     elif char == "タ":
         return (2, lambda a, b: listwrap(b) + listwrap(a))
+    elif char == "ス":
+        return (2, split)
+    elif char == "ッス":
+        return (2, lambda x, y: split(x, y, True))
     elif char == "ッパ":
         def prefixes(a):
             if isinstance(a, list):
@@ -357,6 +407,12 @@ def getcall(code):
         return (arity, handle)
     elif char == "ジ":
         return (1, lambda a: (lambda q: [[k[i] for k in a] for i in range(q)])(max(map(len, a))))
+    elif char == "ッタ":
+        def tail(a, b):
+            if not (isinstance(a, list) or isinstance(a, seq)) and (isinstance(b, list) or isinstance(b, seq)):
+                return tail(b, a)
+            return vecm(lambda x: a[x - 1:], b)
+        return (2, tail)
 
 def run(program, index = -1, stack = None, override = None):
     global _program, _index, _stack, _override

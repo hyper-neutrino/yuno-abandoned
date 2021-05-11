@@ -225,7 +225,7 @@ def yuno_print(x, root = True):
         print(end = "]")
     elif isinstance(x, seq):
         print(end = "{")
-        index = 0
+        index = 1
         while True:
             yuno_print(x[index])
             print(end = ", ")
