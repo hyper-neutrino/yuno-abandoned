@@ -1,4 +1,4 @@
-import sympy
+import itertools, sympy
 
 from codepage import codepage
 from ka2sym import mapping as kanamap
@@ -345,14 +345,18 @@ def getcall(code):
             else:
                 return prefixes(yrange(a, 1, 1))
         return (1, prefixes)
-    elif char == "ッパ":
-        pass
+    elif char == "ッペ":
+        def permutations(a):
+            return list(map(list, itertools.permutations(a)))
+        return (1, permutations)
     elif char == "ヴェ":
         arity, func = getnextcall(code)
         def handle(*a):
             a = list(map(listrange, a))
             return [func(*x) for x in zip(*a)]
         return (arity, handle)
+    elif char == "ジ":
+        return (1, lambda a: (lambda q: [[k[i] for k in a] for i in range(q)])(max(map(len, a))))
 
 def run(program, index = -1, stack = None, override = None):
     global _program, _index, _stack, _override

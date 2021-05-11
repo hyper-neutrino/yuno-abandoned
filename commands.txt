@@ -1,3 +1,7 @@
+planned
+-------
+- for each column (ジマ)
+
 １２３４５６７８９０ - numbers
 。．　　　　　　　　 - decimals (mapped to 。 in the source code)
 ー　　　　　　　　　 - negative numbers
@@ -38,6 +42,7 @@
 ス　　 - split*, split the TOS by the second item (expects a list or sequence to split) (splitting a sequence returns a sequence of lists, so the last one will probably not generate properly - use sequence cut if you want a sequence of sequences)
 ッパ　 - prefixes
 ッペ　 - permutations
+ジ　　 - zip
 
 コ　　 - apply the next function to the complex component of the number (formally, isolate the imag component of the first argument as a real, run, multiply by I, add the real component back)
 ＄　　 - bind the next two functions with the arity of the first

@@ -132,6 +132,8 @@ class seq:
         while len(self.cache) <= b:
             self.__next__()
         return indexinto(self.cache, x)
+    def __len__(self):
+        return float("inf")
 
 class fseq(seq):
     def __init__(self, _map):
