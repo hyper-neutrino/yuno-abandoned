@@ -48,6 +48,8 @@ planned
 ッタ　 - tail*
 ジョ　 - join* (if either isn't a list/seq, it will be the join argument, otherwise, the TOS is)
 ソ　　 - sort
+リャ　 - rotate right*
+リョ　 - rotate left*
 
 コ　　 - apply the next function to the complex component of the number (formally, isolate the imag component of the first argument as a real, run, multiply by I, add the real component back)
 ＄　　 - bind the next two functions with the arity of the first

@@ -58,7 +58,7 @@ def getcalls(code):
     return result
 
 def split(a, x, sub = False):
-    a, x = listnumord(a, x, liststr)
+    a, x = listnumord(a, x, listdigits)
     if not sub:
         x = [x]
     xl = len(x)
@@ -140,7 +140,7 @@ def listrange(x):
 def listwrap(x):
     return list(x) if ispyiter(x) else [x]
 
-def liststr(x):
+def listdigits(x):
     return list(x) if ispyiter(x) else list(map(int, str(x))) if x % 1 == 0 else list(str(x))
 
 def listcoerce(x):
@@ -413,9 +413,48 @@ def getcall(code):
     elif char == "ジ":
         return (1, lambda a: (lambda q: [[k[i] for k in a] for i in range(q)])(max(map(len, a))))
     elif char == "ッタ":
-        return (2, lambda a, b: (lambda x, y: vecm(lambda q: x[q - 1:], y))(*listnumord(a, b)))
+        return (2, lambda a, b: (lambda x, y: vecm(lambda q: x[q - 1:], y))(*listnumord(a, b, listrange)))
     elif char == "ヘ":
-        return (2, lambda a, b: (lambda x, y: vecm(lambda q: x[:q], y))(*listnumord(a, b)))
+        return (2, lambda a, b: (lambda x, y: vecm(lambda q: x[:q], y))(*listnumord(a, b, listrange)))
+    elif char == "ジョ":
+        def join(a, b):
+            a, b = listnumord(a, b, listrange)
+            b = listwrap(b)
+            if isinstance(a, list):
+                if not a:
+                    return []
+                res = []
+                for x in a[:-1]:
+                    res += listwrap(x)
+                    res += b[:]
+                return res + listwrap(a[-1])
+            elif isinstance(a, seq):
+                class joinseq(seq):
+                    def __init__(self, pseq, joiner):
+                        seq.__init__(self, None)
+                        self.pseq = pseq
+                        self.joiner = joiner
+                        self.queue = []
+                        self.psindex = 1
+                    def __iter__(self):
+                        self.queue = []
+                        self.psindex = 1
+                    def __next__(self):
+                        while not self.queue:
+                            self.queue.extend(listwrap(self.pseq[self.psindex]))
+                            self.queue.extend(self.joiner)
+                            self.psindex += 1
+                        val = self.queue.pop(0)
+                        self.cache.append(val)
+                        return val
+                return joinseq(a, b)
+        return (2, join)
+    elif char == "ソ":
+        return (1, lambda x: vecm(sorted, listdigits(x), lambda q: isinstance(q, list)))
+    elif char == "リャ":
+        return (2, lambda a, b: vecd(lambda x, y: x[-y:] + x[:-y], *listnumord(a, b, listrange), lambda x: isinstance(x, list)))
+    elif char == "リョ":
+        return (2, lambda a, b: vecd(lambda x, y: x[y:] + x[:y], *listnumord(a, b, listrange), lambda x: isinstance(x, list)))
 
 def run(program, index = -1, stack = None, override = None):
     global _program, _index, _stack, _override
