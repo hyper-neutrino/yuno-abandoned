@@ -5,7 +5,7 @@ flags = sys.argv[1] if len(sys.argv) > 1 else ""
 ARGS = []
 
 def get_input():
-    return try_eval(input() if "i" in flags or len(sys.argv) <= 3 else sys.argv[3])
+    return try_eval(input()) if "i" in flags or len(sys.argv) <= 3 else try_eval(sys.argv[3])
 
 def yuno_typify(x):
     if isinstance(x, str):
@@ -147,6 +147,20 @@ class fseq(seq):
         self.index += 1
         self.cache.append(val)
         return val
+
+class filterseq(seq):
+    def __init__(self, pseq, filter):
+        seq.__init__(self, None)
+        self.pseq = pseq
+        self.filter = filter
+    def __iter__(self):
+        self.pseq.__iter__()
+    def __next__(self):
+        while True:
+            val = self.pseq.__next__()
+            if (self.filter(val) or [0])[-1]:
+                self.cache.append(val)
+                return val
 
 def vecm(func, obj, xcond = False):
     recur = lambda o: vecm(func, o, xcond)

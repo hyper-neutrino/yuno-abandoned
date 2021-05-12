@@ -135,16 +135,16 @@ def isiter(x):
     return isinstance(x, list) or isinstance(x, seq)
 
 def listrange(x):
-    return list(x) if ispyiter(x) else yrange(x, 1, 1)
+    return listcoerce(x) if ispyiter(x) else yrange(x, 1, 1)
 
 def listwrap(x):
-    return list(x) if ispyiter(x) else [x]
+    return listcoerce(x) if ispyiter(x) else [x]
 
 def listdigits(x):
-    return list(x) if ispyiter(x) else list(map(int, str(x))) if x % 1 == 0 else list(str(x))
+    return listcoerce(x) if ispyiter(x) else list(map(int, str(x))) if x % 1 == 0 else list(str(x))
 
 def listcoerce(x):
-    return list(x) if ispyiter(x) else x
+    return list(x) if ispyiter(x) and not isinstance(x, list) else x
 
 def listnumord(x, y, autolist = lambda x: x):
     if not isiter(x) and isiter(y):
@@ -203,7 +203,7 @@ def getcall(code):
                            not exp and code[0] == "シ" or \
                            not cmp and code[0] == "イ" or \
                            not neg and code[0] == "ー" or \
-                           code[0] == "、" and len(code) > 1 and code[0] in "１２３４５６７８９０。イシー"):
+                           code[0] == "、" and len(code) > 1 and code[1] in "１２３４５６７８９０。イシー"):
             char = code.pop(0)
             if char in "１２３４５６７８９０":
                 s += numcharmap[char]
@@ -452,9 +452,85 @@ def getcall(code):
     elif char == "ソ":
         return (1, lambda x: vecm(sorted, listdigits(x), lambda q: isinstance(q, list)))
     elif char == "リャ":
-        return (2, lambda a, b: vecd(lambda x, y: x[-y:] + x[:-y], *listnumord(a, b, listrange), lambda x: isinstance(x, list)))
+        return (2, lambda a, b: vecd(lambda x, y: x[-(y % len(x)):] + x[:-(y % len(x))], *listnumord(a, b, listrange), lambda x: isinstance(x, list)))
     elif char == "リョ":
-        return (2, lambda a, b: vecd(lambda x, y: x[y:] + x[:y], *listnumord(a, b, listrange), lambda x: isinstance(x, list)))
+        return (2, lambda a, b: vecd(lambda x, y: x[(y % len(x)):] + x[:(y % len(x))], *listnumord(a, b, listrange), lambda x: isinstance(x, list)))
+    elif char == "ッシュ":
+        def sublists(a):
+            if not isiter(a):
+                a = listrange(a)
+            if isinstance(a, list):
+                results = []
+                for length in range(1, len(a) + 1):
+                    for start in range(len(a) - length + 1):
+                        results.append(a[start:start + length])
+                return results
+            elif isinstance(a, seq):
+                class subseq(seq):
+                    def __init__(self, pseq):
+                        seq.__init__(self, None)
+                        self.pseq = pseq
+                        self.queue = [[]]
+                        self.qi = 1
+                        self.vi = 1
+                    def __iter__(self):
+                        self.queue = [[]]
+                        self.qi = 1
+                        self.vi = 1
+                    def __next__(self):
+                        if self.qi >= len(self.queue):
+                            self.queue.extend([[*x, self.pseq[self.vi]] for x in self.queue])
+                            self.vi += 1
+                        val = self.queue[self.qi]
+                        self.qi += 1
+                        self.cache.append(val)
+                        return val
+                return subseq(a)
+        return (1, sublists)
+    elif char == "フィ":
+        arity, func = getnextcall(code)
+        def handle(*a):
+            a = list(a)
+            if isinstance(a[0], seq):
+                return filterseq(a[0], lambda x: run(_program, _index, [x, *a[1:]], [(arity, func)]))
+            if not isinstance(a[0], list):
+                a[0] = yrange(a[0], 1, 1)
+            return [q for q in a[0] if (run(_program, _index, [q, *a[1:]], [(arity, func)]) or [0])[-1]]
+        return (arity, handle)
+    elif char == "フェ":
+        code.insert(0, "フィ")
+        code.insert(1, "フ")
+        return None
+    elif char == "ビ":
+        return (1, lambda x: vecm(lambda y: y % 2, x))
+    elif char == "ッコ":
+        def count(x, y):
+            if isinstance(y, seq):
+                return fseq(lambda i: count(x, y[i]))
+            return x.count(y)
+        return (2, lambda x, y: (lambda a, b: vecm(lambda q: count(q, b), a, lambda v: isinstance(v, list)))(*listnumord(x, y, listdigits)))
+    elif char == "ッキ":
+        def recursivecount(x, y):
+            if isinstance(y, seq):
+                return fseq(lambda i: recursivecount(x, y[i]))
+            normcount = x.count(y)
+            if normcount == 0 and isinstance(y, list):
+                subcounts = [recursivecount(x, b) for b in y]
+                if any(subcounts):
+                    return subcounts
+            return normcount
+        return (2, lambda x, y: (lambda a, b: vecm(lambda q: recursivecount(q, b), a, lambda v: isinstance(v, list)))(*listnumord(x, y, listdigits)))
+    elif char == "イェ":
+        return (1, lambda x: x)
+    elif char == "ッカ":
+        def allequal(x):
+            x = listdigits(x)
+            return sympy.Number(all(y == x[0] for y in x[1:])) if x else sympy.Number(1)
+        return (1, allequal)
+    elif char == "ハ":
+        return (1, lambda x: listdigits(x)[0])
+    elif char == "テ":
+        return (1, lambda x: listdigits(x)[-1])
 
 def run(program, index = -1, stack = None, override = None):
     global _program, _index, _stack, _override
