@@ -1,5 +1,5 @@
 # yuno
-yuno, a modern procedural-ish golfing language.
+yuno is a stack-based golfing language.
 
 To run, `python3 yuno.py <flags> <code / file> [arguments...]`. Flags are required. If you don't want any, use `python3 yuno.py "" <code / file> [arguments...]`.
 
