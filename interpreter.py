@@ -331,9 +331,11 @@ def getcall(code):
         return (arity, handle)
     elif char == "ヌ":
         return (1, lambda x: vecm(lambda k: len(k) if isinstance(k, list) or isinstance(k, str) else len(str(k).replace(" ", "")), x, lambda k: not isinstance(k, seq)))
-    elif char == "オ":
+    elif char == "ッキャ":
+        return (-1, lambda *a: tuple(run(_program, _index, list(a))))
+    elif char == "ッキョ":
         return (-1, lambda *a: tuple(run(_program, _index - 1, list(a))))
-    elif char == "ウ":
+    elif char == "ッキュ":
         return (-1, lambda *a: tuple(run(_program, _index + 1, list(a))))
     elif char == "？":
         a1, f1 = getnextcall(code)
@@ -531,6 +533,10 @@ def getcall(code):
         return (1, lambda x: listdigits(x)[0])
     elif char == "テ":
         return (1, lambda x: listdigits(x)[-1])
+    elif char == "プ":
+        return (1, lambda x: output(x) or x)
+    elif char == "リュ":
+        return (2, lambda x, y: (lambda a, b: vecd(lambda q, r: q * r, a, b, lambda v: isinstance(v, list)))(*listnumord(x, y, listwrap)))
 
 def run(program, index = -1, stack = None, override = None):
     global _program, _index, _stack, _override

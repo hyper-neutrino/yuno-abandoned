@@ -73,13 +73,16 @@ planned
 ッカ　 - constant; all equal
 ハ　　 - head (first)
 テ　　 - tail (last)
+プ　　 - print to STDOUT without a newline
+リュ　 - repeat*
 
 コ　　 - apply the next function to the complex component of the number (formally, isolate the imag component of the first argument as a real, run, multiply by I, add the real component back)
 ＄　　 - bind the next two functions with the arity of the first
 マ　　 - map (for each of first argument; numbers -> range according to ラ); if the mapped function yields multiple outputs to the stack, they are all given
 メ　　 - map over second argument
-オ　　 - previous line
-ウ　　 - next line
+ッキャ - this line
+ッキョ - prev line
+ッキュ - next line
 ？　　 - ?abc - apply a, but push back the elements that it consumes, then check the TOS, and if it's truthy, run b, otherwise, run c
 フ；　 - function - bind until ; using arity of the first item
 モ　　 - alias for マフ
