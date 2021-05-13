@@ -19,10 +19,12 @@ Flags: h - display this help message and exit
        D - output code in bytecode as python repr
        f - read from a file
        i - when the stack is too small, input will be taken from STDIN rather than using the first argument
+       j - interpret code using Jelly's codepage
        m - exit math mode before outputting (remove sympy representation)
        n - output a newline
        p - print using python's string representation rather than yuno's
        s - output the stack instead of the ToS
+       x - include the xxd in the CGCC submission (no-op without the C flag)
 """
 
 if len(sys.argv) < 3:
@@ -42,6 +44,9 @@ if "f" in flags:
             code = f.read()
 elif "b" in flags:
     code = "".join(codepage.codepage[ord(x)] for x in code)
+
+if "j" in flags:
+    code = "".join(codepage.codepage[codepage.jelly.find(x)] for x in code if x in codepage.jelly)
 
 arguments = list(map(try_eval, arguments))
 
@@ -71,6 +76,25 @@ if "C" in flags:
 
 [yuno]: https://github.com/hyper-neutrino/yuno
 [bytes]: https://github.com/hyper-neutrino/yuno/wiki/Byte-count""" % "".join(replaced).replace("\n", "\n    "))
+        if "x" in flags:
+            print()
+            print("xxd using Jelly's codepage:")
+            print()
+            for i in range(0, len(replaced), 16):
+                print("    " + hex(i)[2:].zfill(8) + ":", end = " ")
+                slots = ""
+                out = ""
+                for j in range(i, i + 16):
+                    if j < len(replaced):
+                        idx = codepage.codepage.index(replaced[j])
+                        slots += hex(idx)[2:].zfill(2)
+                        out += codepage.jelly[idx]
+                    else:
+                        slots += "  "
+                    if j % 2:
+                        slots += " "
+                print(slots, end = " ")
+                print(out)
         raise SystemExit
     else:
         print(f"""# [yuno], {len(replaced)} [bytes]
