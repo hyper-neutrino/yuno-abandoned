@@ -1,6 +1,6 @@
-# yuno
+# yuno (abandoned)
 
-**IMPORTANT**: this project is inactive for now. Development may resume sometime in the distant future.
+**IMPORTANT**: this project is formally abandoned. The name "yuno" no longer refers to this project, and it is only here for historical record.
 
 yuno is a stack-based golfing language.
 
